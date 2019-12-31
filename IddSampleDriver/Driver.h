@@ -24,6 +24,7 @@ namespace Microsoft
         namespace Wrappers
         {
             // Adds a wrapper for thread handles to the existing set of WRL handle wrapper classes
+            // 将线程句柄的包装器添加到现有的WRL句柄包装器类集中
             typedef HandleT<HandleTraits::HANDLENullTraits> Thread;
         }
     }
@@ -35,6 +36,7 @@ namespace Microsoft
     {
         /// <summary>
         /// Manages the creation and lifetime of a Direct3D render device.
+        /// 管理Direct3D渲染设备的创建和生命周期。
         /// </summary>
         struct Direct3DDevice
         {
@@ -51,6 +53,7 @@ namespace Microsoft
 
         /// <summary>
         /// Manages a thread that consumes buffers from an indirect display swap-chain object.
+        /// 管理使用来自间接显示交换链对象的缓冲区的线程。
         /// </summary>
         class SwapChainProcessor
         {
@@ -74,6 +77,7 @@ namespace Microsoft
 
         /// <summary>
         /// Provides a sample implementation of an indirect display driver.
+        /// 提供间接显示驱动程序的示例实现。
         /// </summary>
         class IndirectDeviceContext
         {
