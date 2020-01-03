@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "Trace.h"
+#include "public.h"
 
 namespace Microsoft
 {
@@ -40,7 +41,7 @@ namespace Microsoft
         /// </summary>
         struct Direct3DDevice
         {
-            Direct3DDevice(LUID AdapterLuid);
+            Direct3DDevice(LUID adapterLuid);
             Direct3DDevice();
             HRESULT Init();
 
@@ -62,7 +63,7 @@ namespace Microsoft
             ~SwapChainProcessor();
 
         private:
-            static DWORD CALLBACK RunThread(LPVOID Argument);
+            static DWORD CALLBACK RunThread(LPVOID argument);
 
             void Run();
             void RunCore();
@@ -82,13 +83,13 @@ namespace Microsoft
         class IndirectDeviceContext
         {
         public:
-            IndirectDeviceContext(_In_ WDFDEVICE WdfDevice);
+            IndirectDeviceContext(_In_ WDFDEVICE wdfDevice);
             virtual ~IndirectDeviceContext();
 
             void InitAdapter();
             void FinishInit();
 
-            void AssignSwapChain(IDDCX_SWAPCHAIN SwapChain, LUID RenderAdapter, HANDLE NewFrameEvent);
+            void AssignSwapChain(IDDCX_SWAPCHAIN swapChain, LUID renderAdapter, HANDLE newFrameEvent);
             void UnassignSwapChain();
 
         protected:

@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IddSampleDriver", "IddSampleDriver\IddSampleDriver.vcxproj", "{2D54CB75-8B17-4F11-97DC-847B0244CD46}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IddSampleApp", "IddSampleApp\IddSampleApp.vcxproj", "{F01CA733-8921-43F9-AE3D-63245DD814E2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,8 +43,23 @@ Global
 		{2D54CB75-8B17-4F11-97DC-847B0244CD46}.Release|x86.ActiveCfg = Release|Win32
 		{2D54CB75-8B17-4F11-97DC-847B0244CD46}.Release|x86.Build.0 = Release|Win32
 		{2D54CB75-8B17-4F11-97DC-847B0244CD46}.Release|x86.Deploy.0 = Release|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Debug|ARM.ActiveCfg = Debug|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Debug|x64.ActiveCfg = Debug|x64
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Debug|x64.Build.0 = Debug|x64
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Debug|x86.ActiveCfg = Debug|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Debug|x86.Build.0 = Debug|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Release|ARM.ActiveCfg = Release|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Release|ARM64.ActiveCfg = Release|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Release|x64.ActiveCfg = Release|x64
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Release|x64.Build.0 = Release|x64
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Release|x86.ActiveCfg = Release|Win32
+		{F01CA733-8921-43F9-AE3D-63245DD814E2}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8BC51EBC-D0A0-4F53-A36D-A130D11974F1}
 	EndGlobalSection
 EndGlobal

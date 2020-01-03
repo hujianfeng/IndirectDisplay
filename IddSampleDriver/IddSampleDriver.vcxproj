@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Driver.h" />
+    <ClInclude Include="public.h" />
     <ClInclude Include="Trace.h" />
   </ItemGroup>
   <ItemGroup>
@@ -66,7 +67,7 @@
   <PropertyGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PlatformToolset>WindowsUserModeDriver10.0</PlatformToolset>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
   <PropertyGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PlatformToolset>WindowsUserModeDriver10.0</PlatformToolset>
@@ -228,9 +229,10 @@
       <WppScanConfigurationData Condition="'%(ClCompile.ScanConfigurationData)' == ''">trace.h</WppScanConfigurationData>
       <ExceptionHandling>Async</ExceptionHandling>
       <EnablePREfast>true</EnablePREfast>
+      <SDLCheck>false</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>%(AdditionalDependencies);OneCoreUAP.lib;avrt.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);OneCoreUAP.lib;avrt.lib;$(SDK_LIB_PATH)\mincore.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

@@ -52,6 +52,18 @@ struct IndirectDeviceContextWrapper
     }
 };
 
+void LOG(const char* format, ...)
+{
+    char szBuffer[1024];
+
+    va_list vlArgs;
+    va_start(vlArgs, format);
+    _vsnprintf(szBuffer, sizeof(szBuffer) - 1, format, vlArgs);
+    va_end(vlArgs);
+
+    OutputDebugStringA(szBuffer);
+}
+
 // This macro creates the methods for accessing an IndirectDeviceContextWrapper as a context for a WDF object
 // 此宏创建用于将IndirectDeviceContextWrapper作为WDF对象的上下文访问的方法
 WDF_DECLARE_CONTEXT_TYPE(IndirectDeviceContextWrapper);
@@ -65,6 +77,8 @@ extern "C" BOOL WINAPI DllMain(
     UNREFERENCED_PARAMETER(lpReserved);
     UNREFERENCED_PARAMETER(dwReason);
 
+    LOG("IndirectDisplay, DllMain\n");
+
     return TRUE;
 }
 
@@ -73,77 +87,82 @@ extern "C" BOOL WINAPI DllMain(
 //
 _Use_decl_annotations_
 extern "C" NTSTATUS DriverEntry(
-    PDRIVER_OBJECT  pDriverObject,
-    PUNICODE_STRING pRegistryPath
+    PDRIVER_OBJECT  driverObject,
+    PUNICODE_STRING registryPath
 )
 {
-    WDF_DRIVER_CONFIG Config;
-    NTSTATUS Status;
+    LOG("IndirectDisplay, DriverEntry\n");
 
-    WDF_OBJECT_ATTRIBUTES Attributes;
-    WDF_OBJECT_ATTRIBUTES_INIT(&Attributes);
+    WDF_DRIVER_CONFIG config;
+    NTSTATUS status;
+
+    WDF_OBJECT_ATTRIBUTES attributes;
+    WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
 
     // 注册设备上电后的回调函数IddSampleDeviceAdd。
     WDF_DRIVER_CONFIG_INIT(
-        &Config,
+        &config,
         IddSampleDeviceAdd
     );
 
     // 创建驱动程序对象
-    Status = WdfDriverCreate(
-        pDriverObject, 
-        pRegistryPath, 
-        &Attributes, 
-        &Config, 
-        WDF_NO_HANDLE
-    );
-    if (!NT_SUCCESS(Status))
+    LOG("IndirectDisplay, WdfDriverCreate\n");
+    status = WdfDriverCreate(
+        driverObject, 
+        registryPath, 
+        WDF_NO_OBJECT_ATTRIBUTES, //&attributes, 
+        &config, 
+        WDF_NO_HANDLE);
+    if (!NT_SUCCESS(status))
     {
-        return Status;
+        LOG("Error: WdfDriverCreate failed 0x%x\n", status);
+        return status;
     }
 
-    return Status;
+    return status;
 }
 
 //_Use_decl_annotations_
-NTSTATUS IddSampleDeviceAdd(WDFDRIVER Driver, PWDFDEVICE_INIT pDeviceInit)
+NTSTATUS IddSampleDeviceAdd(WDFDRIVER driver, PWDFDEVICE_INIT deviceInit)
 {
-    NTSTATUS Status = STATUS_SUCCESS;
-    WDF_PNPPOWER_EVENT_CALLBACKS PnpPowerCallbacks;
+    LOG("IndirectDisplay, IddSampleDeviceAdd\n");
 
-    UNREFERENCED_PARAMETER(Driver);
+    NTSTATUS status = STATUS_SUCCESS;
+    WDF_PNPPOWER_EVENT_CALLBACKS pnpPowerCallbacks;
+
+    UNREFERENCED_PARAMETER(driver);
 
     // Register for power callbacks - in this sample only power-on is needed
     // 注册电源回调-在此示例中，仅需要开机。
-    WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&PnpPowerCallbacks);
-    PnpPowerCallbacks.EvtDeviceD0Entry = IddSampleDeviceD0Entry;
-    WdfDeviceInitSetPnpPowerEventCallbacks(pDeviceInit, &PnpPowerCallbacks);
+    WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
+    pnpPowerCallbacks.EvtDeviceD0Entry = IddSampleDeviceD0Entry;
+    WdfDeviceInitSetPnpPowerEventCallbacks(deviceInit, &pnpPowerCallbacks);
 
-    IDD_CX_CLIENT_CONFIG IddConfig;
-    IDD_CX_CLIENT_CONFIG_INIT(&IddConfig);
+    IDD_CX_CLIENT_CONFIG iddConfig;
+    IDD_CX_CLIENT_CONFIG_INIT(&iddConfig);
 
     // If the driver wishes to handle custom IoDeviceControl requests, it's necessary to use this callback since IddCx
     // redirects IoDeviceControl requests to an internal queue. This sample does not need this.
     // 如果驱动程序希望处理自定义IoDeviceControl请求，则必须使用此回调，因为IddCx将IoDeviceControl请求重定向到内部队列。 该示例不需要此。
 
-    IddConfig.EvtIddCxDeviceIoControl = IddSampleIoDeviceControl;
-    IddConfig.EvtIddCxAdapterInitFinished = IddSampleAdapterInitFinished;
-    IddConfig.EvtIddCxParseMonitorDescription = IddSampleParseMonitorDescription;
-    IddConfig.EvtIddCxMonitorGetDefaultDescriptionModes = IddSampleMonitorGetDefaultModes;
-    IddConfig.EvtIddCxMonitorQueryTargetModes = IddSampleMonitorQueryModes;
-    IddConfig.EvtIddCxAdapterCommitModes = IddSampleAdapterCommitModes;
-    IddConfig.EvtIddCxMonitorAssignSwapChain = IddSampleMonitorAssignSwapChain;
-    IddConfig.EvtIddCxMonitorUnassignSwapChain = IddSampleMonitorUnassignSwapChain;
+    iddConfig.EvtIddCxDeviceIoControl = IddSampleIoDeviceControl;
+    iddConfig.EvtIddCxAdapterInitFinished = IddSampleAdapterInitFinished;
+    iddConfig.EvtIddCxParseMonitorDescription = IddSampleParseMonitorDescription;
+    iddConfig.EvtIddCxMonitorGetDefaultDescriptionModes = IddSampleMonitorGetDefaultModes;
+    iddConfig.EvtIddCxMonitorQueryTargetModes = IddSampleMonitorQueryModes;
+    iddConfig.EvtIddCxAdapterCommitModes = IddSampleAdapterCommitModes;
+    iddConfig.EvtIddCxMonitorAssignSwapChain = IddSampleMonitorAssignSwapChain;
+    iddConfig.EvtIddCxMonitorUnassignSwapChain = IddSampleMonitorUnassignSwapChain;
 
-    Status = IddCxDeviceInitConfig(pDeviceInit, &IddConfig);
-    if (!NT_SUCCESS(Status))
+    status = IddCxDeviceInitConfig(deviceInit, &iddConfig);
+    if (!NT_SUCCESS(status))
     {
-        return Status;
+        return status;
     }
 
-    WDF_OBJECT_ATTRIBUTES Attr;
-    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&Attr, IndirectDeviceContextWrapper);
-    Attr.EvtCleanupCallback = [](WDFOBJECT Object)
+    WDF_OBJECT_ATTRIBUTES deviceAttributes;
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, IndirectDeviceContextWrapper);
+    deviceAttributes.EvtCleanupCallback = [](WDFOBJECT Object)
     {
         // Automatically cleanup the context when the WDF object is about to be deleted
         // WDF对象即将删除时自动清除上下文
@@ -154,33 +173,54 @@ NTSTATUS IddSampleDeviceAdd(WDFDRIVER Driver, PWDFDEVICE_INIT pDeviceInit)
         }
     };
 
-    WDFDEVICE Device = nullptr;
+    WDFDEVICE device = nullptr;
 
     // 创建框架设备对象。
-    Status = WdfDeviceCreate(&pDeviceInit, &Attr, &Device);
-    if (!NT_SUCCESS(Status))
+    LOG("IndirectDisplay, WdfDeviceCreate\n");
+    status = WdfDeviceCreate(&deviceInit, &deviceAttributes, &device);
+    if (!NT_SUCCESS(status))
     {
-        return Status;
+        LOG("IndirectDisplay, WdfDeviceCreate Error\n");
+        return status;
     }
 
-    Status = IddCxDeviceInitialize(Device);
+    //
+    // Create a device interface so that application can find and talk to us.
+    // 创建一个设备接口，以便应用程序可以找到我们并与我们交谈。
+    //
+    LOG("IndirectDisplay, WdfDeviceCreateDeviceInterface\n");
+    status = WdfDeviceCreateDeviceInterface(
+        device,
+        &GUID_DEVINTERFACE_ID,
+        NULL // ReferenceString
+    );
+
+    if (!NT_SUCCESS(status))
+    {
+        LOG("IndirectDisplay, WdfDeviceCreateDeviceInterface Error\n");
+        return status;
+    }
+
+    status = IddCxDeviceInitialize(device);
 
     // Create a new device context object and attach it to the WDF device object
     // 创建一个新的设备上下文对象并将其附加到WDF设备对象
-    auto* pContext = WdfObjectGet_IndirectDeviceContextWrapper(Device);
-    pContext->pContext = new IndirectDeviceContext(Device);
+    auto* pContext = WdfObjectGet_IndirectDeviceContextWrapper(device);
+    pContext->pContext = new IndirectDeviceContext(device);
 
-    return Status;
+    return status;
 }
 
 _Use_decl_annotations_
-NTSTATUS IddSampleDeviceD0Entry(WDFDEVICE Device, WDF_POWER_DEVICE_STATE PreviousState)
+NTSTATUS IddSampleDeviceD0Entry(WDFDEVICE device, WDF_POWER_DEVICE_STATE previousState)
 {
-    UNREFERENCED_PARAMETER(PreviousState);
+    LOG("IndirectDisplay, IddSampleDeviceD0Entry\n");
+
+    UNREFERENCED_PARAMETER(previousState);
 
     // This function is called by WDF to start the device in the fully-on power state.
     // WDF调用此功能以在完全通电状态下启动设备。
-    auto* pContext = WdfObjectGet_IndirectDeviceContextWrapper(Device);
+    auto* pContext = WdfObjectGet_IndirectDeviceContextWrapper(device);
     pContext->pContext->InitAdapter();
 
     return STATUS_SUCCESS;
@@ -188,18 +228,20 @@ NTSTATUS IddSampleDeviceD0Entry(WDFDEVICE Device, WDF_POWER_DEVICE_STATE Previou
 
 #pragma region Direct3DDevice
 
-Direct3DDevice::Direct3DDevice(LUID AdapterLuid) : AdapterLuid(AdapterLuid)
+Direct3DDevice::Direct3DDevice(LUID adapterLuid) : AdapterLuid(adapterLuid)
 {
-
+    LOG("IndirectDisplay, Direct3DDevice::Direct3DDevice\n");
 }
 
 Direct3DDevice::Direct3DDevice()
 {
-
+    LOG("IndirectDisplay, Direct3DDevice::Direct3DDevice\n");
 }
 
 HRESULT Direct3DDevice::Init()
 {
+    LOG("IndirectDisplay, Direct3DDevice::Init\n");
+
     // The DXGI factory could be cached, but if a new render adapter appears on the system, a new factory needs to be
     // created. If caching is desired, check DxgiFactory->IsCurrent() each time and recreate the factory if !IsCurrent.
     // 可以缓存DXGI工厂，但是如果系统上出现新的渲染适配器，则需要创建一个新工厂。
@@ -245,9 +287,11 @@ HRESULT Direct3DDevice::Init()
 
 #pragma region SwapChainProcessor
 
-SwapChainProcessor::SwapChainProcessor(IDDCX_SWAPCHAIN hSwapChain, shared_ptr<Direct3DDevice> Device, HANDLE NewFrameEvent)
-    : m_hSwapChain(hSwapChain), m_Device(Device), m_hAvailableBufferEvent(NewFrameEvent)
+SwapChainProcessor::SwapChainProcessor(IDDCX_SWAPCHAIN hSwapChain, shared_ptr<Direct3DDevice> device, HANDLE newFrameEvent)
+    : m_hSwapChain(hSwapChain), m_Device(device), m_hAvailableBufferEvent(newFrameEvent)
 {
+    LOG("IndirectDisplay, SwapChainProcessor::SwapChainProcessor\n");
+
     m_hTerminateEvent.Attach(CreateEvent(nullptr, FALSE, FALSE, nullptr));
 
     // Immediately create and run the swap-chain processing thread, passing 'this' as the thread parameter
@@ -257,6 +301,8 @@ SwapChainProcessor::SwapChainProcessor(IDDCX_SWAPCHAIN hSwapChain, shared_ptr<Di
 
 SwapChainProcessor::~SwapChainProcessor()
 {
+    LOG("IndirectDisplay, SwapChainProcessor::~SwapChainProcessor\n");
+
     // Alert the swap-chain processing thread to terminate
     // 提醒交换链处理线程终止
     SetEvent(m_hTerminateEvent.Get());
@@ -269,14 +315,18 @@ SwapChainProcessor::~SwapChainProcessor()
     }
 }
 
-DWORD CALLBACK SwapChainProcessor::RunThread(LPVOID Argument)
+DWORD CALLBACK SwapChainProcessor::RunThread(LPVOID argument)
 {
-    reinterpret_cast<SwapChainProcessor*>(Argument)->Run();
+    LOG("IndirectDisplay, SwapChainProcessor::RunThread\n");
+
+    reinterpret_cast<SwapChainProcessor*>(argument)->Run();
     return 0;
 }
 
 void SwapChainProcessor::Run()
 {
+    LOG("IndirectDisplay, SwapChainProcessor::Run\n");
+
     // For improved performance, make use of the Multimedia Class Scheduler Service, which will intelligently
     // prioritize this thread for improved throughput in high CPU-load scenarios.
     // 为了提高性能，请使用多媒体类调度程序服务，该服务将智能地对该线程进行优先级排序，
@@ -297,19 +347,21 @@ void SwapChainProcessor::Run()
 
 void SwapChainProcessor::RunCore()
 {
+    LOG("IndirectDisplay, SwapChainProcessor::RunCore\n");
+
     // Get the DXGI device interface
     // 获取DXGI设备接口
-    ComPtr<IDXGIDevice> DxgiDevice;
-    HRESULT hr = m_Device->Device.As(&DxgiDevice);
+    ComPtr<IDXGIDevice> dxgiDevice;
+    HRESULT hr = m_Device->Device.As(&dxgiDevice);
     if (FAILED(hr))
     {
         return;
     }
 
-    IDARG_IN_SWAPCHAINSETDEVICE SetDevice = {};
-    SetDevice.pDevice = DxgiDevice.Get();
+    IDARG_IN_SWAPCHAINSETDEVICE setDevice = {};
+    setDevice.pDevice = dxgiDevice.Get();
 
-    hr = IddCxSwapChainSetDevice(m_hSwapChain, &SetDevice);
+    hr = IddCxSwapChainSetDevice(m_hSwapChain, &setDevice);
     if (FAILED(hr))
     {
         return;
@@ -319,24 +371,24 @@ void SwapChainProcessor::RunCore()
     // 循环获取和释放缓冲区
     for (;;)
     {
-        ComPtr<IDXGIResource> AcquiredBuffer;
+        ComPtr<IDXGIResource> acquiredBuffer;
 
         // Ask for the next buffer from the producer
         // 向生产者请求下一个缓冲区
-        IDARG_OUT_RELEASEANDACQUIREBUFFER Buffer = {};
-        hr = IddCxSwapChainReleaseAndAcquireBuffer(m_hSwapChain, &Buffer);
+        IDARG_OUT_RELEASEANDACQUIREBUFFER buffer = {};
+        hr = IddCxSwapChainReleaseAndAcquireBuffer(m_hSwapChain, &buffer);
 
         // AcquireBuffer immediately returns STATUS_PENDING if no buffer is yet available
         if (hr == E_PENDING)
         {
             // We must wait for a new buffer
             // 等待一个新的缓冲区
-            HANDLE WaitHandles [] =
+            HANDLE waitHandles [] =
             {
                 m_hAvailableBufferEvent,
                 m_hTerminateEvent.Get()
             };
-            DWORD WaitResult = WaitForMultipleObjects(ARRAYSIZE(WaitHandles), WaitHandles, FALSE, 16);
+            DWORD WaitResult = WaitForMultipleObjects(ARRAYSIZE(waitHandles), waitHandles, FALSE, 16);
             if (WaitResult == WAIT_OBJECT_0 || WaitResult == WAIT_TIMEOUT)
             {
                 // We have a new buffer, so try the AcquireBuffer again
@@ -359,7 +411,7 @@ void SwapChainProcessor::RunCore()
         }
         else if (SUCCEEDED(hr))
         {
-            AcquiredBuffer.Attach(Buffer.MetaData.pSurface);
+            acquiredBuffer.Attach(buffer.MetaData.pSurface);
 
             // ==============================
             // TODO: Process the frame here
@@ -381,7 +433,7 @@ void SwapChainProcessor::RunCore()
             //
             // ==============================
 
-            AcquiredBuffer.Reset();
+            acquiredBuffer.Reset();
             hr = IddCxSwapChainFinishedProcessingFrame(m_hSwapChain);
             if (FAILED(hr))
             {
@@ -454,15 +506,20 @@ const BYTE IndirectDeviceContext::s_KnownMonitorEdid[] =
 IndirectDeviceContext::IndirectDeviceContext(_In_ WDFDEVICE WdfDevice) :
     m_WdfDevice(WdfDevice)
 {
+    LOG("IndirectDisplay, IndirectDeviceContext::IndirectDeviceContext\n");
 }
 
 IndirectDeviceContext::~IndirectDeviceContext()
 {
+    LOG("IndirectDisplay, IndirectDeviceContext::~IndirectDeviceContext\n");
+
     m_ProcessingThread.reset();
 }
 
 void IndirectDeviceContext::InitAdapter()
 {
+    LOG("IndirectDisplay, IndirectDeviceContext::InitAdapter\n");
+
     // ==============================
     // TODO: Update the below diagnostic information in accordance with the target hardware. The strings and version
     // numbers are used for telemetry and may be displayed to the user in some situations.
@@ -529,6 +586,8 @@ void IndirectDeviceContext::InitAdapter()
 
 void IndirectDeviceContext::FinishInit()
 {
+    LOG("IndirectDisplay, IndirectDeviceContext::FinishInit\n");
+
     // ==============================
     // TODO: In a real driver, the EDID should be retrieved dynamically from a connected physical monitor. The EDID
     // provided here is purely for demonstration, as it describes only 640x480 @ 60 Hz and 800x600 @ 60 Hz. Monitor
@@ -599,6 +658,8 @@ void IndirectDeviceContext::FinishInit()
 
 void IndirectDeviceContext::AssignSwapChain(IDDCX_SWAPCHAIN SwapChain, LUID RenderAdapter, HANDLE NewFrameEvent)
 {
+    LOG("IndirectDisplay, IndirectDeviceContext::AssignSwapChain\n");
+
     m_ProcessingThread.reset();
 
     auto Device = make_shared<Direct3DDevice>(RenderAdapter);
@@ -619,6 +680,8 @@ void IndirectDeviceContext::AssignSwapChain(IDDCX_SWAPCHAIN SwapChain, LUID Rend
 
 void IndirectDeviceContext::UnassignSwapChain()
 {
+    LOG("IndirectDisplay, IndirectDeviceContext::UnassignSwapChain\n");
+
     // Stop processing the last swap-chain
     // 停止处理最后一个交换链
     m_ProcessingThread.reset();
@@ -636,6 +699,8 @@ VOID IddSampleIoDeviceControl(
     size_t InputBufferLength,
     ULONG IoControlCode)
 {
+    LOG("IndirectDisplay, IddSampleIoDeviceControl\n");
+
     UNREFERENCED_PARAMETER(Device);
     UNREFERENCED_PARAMETER(Request);
     UNREFERENCED_PARAMETER(OutputBufferLength);
@@ -647,6 +712,8 @@ VOID IddSampleIoDeviceControl(
 _Use_decl_annotations_
 NTSTATUS IddSampleAdapterInitFinished(IDDCX_ADAPTER AdapterObject, const IDARG_IN_ADAPTER_INIT_FINISHED* pInArgs)
 {
+    LOG("IndirectDisplay, IddSampleAdapterInitFinished\n");
+
     // This is called when the OS has finished setting up the adapter for use by the IddCx driver. It's now possible
     // to report attached monitors.
     // 当操作系统完成设置适配器以供IddCx驱动程序使用时，将调用此方法。 现在可以报告已连接的监视器。
@@ -663,6 +730,8 @@ NTSTATUS IddSampleAdapterInitFinished(IDDCX_ADAPTER AdapterObject, const IDARG_I
 _Use_decl_annotations_
 NTSTATUS IddSampleAdapterCommitModes(IDDCX_ADAPTER AdapterObject, const IDARG_IN_COMMITMODES* pInArgs)
 {
+    LOG("IndirectDisplay, IddSampleAdapterCommitModes\n");
+
     UNREFERENCED_PARAMETER(AdapterObject);
     UNREFERENCED_PARAMETER(pInArgs);
 
@@ -686,6 +755,8 @@ _Use_decl_annotations_
 NTSTATUS IddSampleParseMonitorDescription(const IDARG_IN_PARSEMONITORDESCRIPTION* pInArgs, 
     IDARG_OUT_PARSEMONITORDESCRIPTION* pOutArgs)
 {
+    LOG("IndirectDisplay, IddSampleParseMonitorDescription\n");
+
     // ==============================
     // TODO: In a real driver, this function would be called to generate monitor modes for an EDID by parsing it. In
     // this sample driver, we hard-code the EDID, so this function can generate known modes.
@@ -727,6 +798,8 @@ NTSTATUS IddSampleMonitorGetDefaultModes(IDDCX_MONITOR MonitorObject,
     const IDARG_IN_GETDEFAULTDESCRIPTIONMODES* pInArgs, 
     IDARG_OUT_GETDEFAULTDESCRIPTIONMODES* pOutArgs)
 {
+    LOG("IndirectDisplay, IddSampleMonitorGetDefaultModes\n");
+
     UNREFERENCED_PARAMETER(MonitorObject);
     UNREFERENCED_PARAMETER(pInArgs);
     UNREFERENCED_PARAMETER(pOutArgs);
@@ -758,6 +831,8 @@ void CreateTargetMode(DISPLAYCONFIG_VIDEO_SIGNAL_INFO& Mode,
     UINT Height, 
     UINT VSync)
 {
+    LOG("IndirectDisplay, CreateTargetMode\n");
+
     Mode.totalSize.cx = Mode.activeSize.cx = Width;
     Mode.totalSize.cy = Mode.activeSize.cy = Height;
     Mode.AdditionalSignalInfo.vSyncFreqDivider = 1;
@@ -771,6 +846,8 @@ void CreateTargetMode(DISPLAYCONFIG_VIDEO_SIGNAL_INFO& Mode,
 
 void CreateTargetMode(IDDCX_TARGET_MODE& Mode, UINT Width, UINT Height, UINT VSync)
 {
+    LOG("IndirectDisplay, CreateTargetMode\n");
+
     Mode.Size = sizeof(Mode);
     CreateTargetMode(Mode.TargetVideoSignalInfo.targetVideoSignalInfo, Width, Height, VSync);
 }
@@ -780,6 +857,8 @@ NTSTATUS IddSampleMonitorQueryModes(IDDCX_MONITOR MonitorObject,
     const IDARG_IN_QUERYTARGETMODES* pInArgs, 
     IDARG_OUT_QUERYTARGETMODES* pOutArgs)
 {
+    LOG("IndirectDisplay, IddSampleMonitorQueryModes\n");
+
     UNREFERENCED_PARAMETER(MonitorObject);
 
     vector<IDDCX_TARGET_MODE> TargetModes(4);
@@ -809,6 +888,8 @@ _Use_decl_annotations_
 NTSTATUS IddSampleMonitorAssignSwapChain(IDDCX_MONITOR MonitorObject, 
     const IDARG_IN_SETSWAPCHAIN* pInArgs)
 {
+    LOG("IndirectDisplay, IddSampleMonitorAssignSwapChain\n");
+
     auto* pContext = WdfObjectGet_IndirectDeviceContextWrapper(MonitorObject);
     pContext->pContext->AssignSwapChain(pInArgs->hSwapChain, pInArgs->RenderAdapterLuid, pInArgs->hNextSurfaceAvailable);
     return STATUS_SUCCESS;
@@ -817,6 +898,8 @@ NTSTATUS IddSampleMonitorAssignSwapChain(IDDCX_MONITOR MonitorObject,
 _Use_decl_annotations_
 NTSTATUS IddSampleMonitorUnassignSwapChain(IDDCX_MONITOR MonitorObject)
 {
+    LOG("IndirectDisplay, IddSampleMonitorUnassignSwapChain\n");
+
     auto* pContext = WdfObjectGet_IndirectDeviceContextWrapper(MonitorObject);
     pContext->pContext->UnassignSwapChain();
     return STATUS_SUCCESS;
